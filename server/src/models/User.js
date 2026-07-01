@@ -40,12 +40,10 @@ const userSchema = new mongoose.Schema(
             default: "USER"
         },
 
-        workspaces: [
-            {
-                type: mongoose.Schema.Types.ObjectId,
-                ref: "Workspace"
-            }
-        ],
+        workspaces: [{
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Workspace"
+        }],
 
         isVerified: {
             type: Boolean,
