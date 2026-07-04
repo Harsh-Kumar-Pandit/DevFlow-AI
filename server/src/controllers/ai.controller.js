@@ -435,162 +435,103 @@ ${activity.createdAt}
 };
 
 export const workspaceAIChat = async (req, res) => {
-
     try {
-
-        const {
-
-            workspaceId,
-
-            question
-
-        } = req.body;
+        const { workspaceId, question } = req.body;
 
         if (!workspaceId || !question) {
-
             return res.status(400).json({
-
                 success: false,
-
                 message: "Workspace ID and question are required"
-
             });
-
         }
 
         const workspace = await Workspace.findById(workspaceId);
 
         if (!workspace) {
-
             return res.status(404).json({
-
                 success: false,
-
                 message: "Workspace not found"
-
             });
-
         }
 
+        const isOwner = workspace.owner.toString() === req.user._id.toString();
         const isMember = workspace.members.some(
-
-            member =>
-
-                member.toString() ===
-
-                req.user._id.toString()
-
+            member => member.toString() === req.user._id.toString()
         );
 
-        if (!isMember) {
-
+        if (!isOwner && !isMember) {
             return res.status(403).json({
-
                 success: false,
-
                 message: "Access denied"
-
             });
-
         }
 
         const projects = await Project.find({
-
             workspace: workspaceId
-
         });
 
         const tasks = await Task.find({
-
             workspace: workspaceId
-
         }).populate(
-
             "assignedTo",
-
             "fullName"
-
         );
 
         const activities = await Activity.find({
-
             workspace: workspaceId
-
         })
-
             .populate(
-
                 "user",
-
                 "fullName"
-
             )
-
             .sort({
-
                 createdAt: -1
-
             })
-
             .limit(20);
 
         const formattedProjects = projects.map(project =>
-
             `Project: ${project.name}`
-
         ).join("\n");
 
         const formattedTasks = tasks.map(task =>
-
-            `Task: ${task.title}
-Status: ${task.status}
-Priority: ${task.priority}
-Assigned: ${task.assignedTo?.fullName || "Unassigned"}`
-
+            `Task: ${task.title}\nStatus: ${task.status}\nPriority: ${task.priority}\nAssigned: ${task.assignedTo?.fullName || "Unassigned"}`
         ).join("\n\n");
 
         const formattedActivities = activities.map(activity =>
-
             `${activity.user?.fullName}: ${activity.action}`
-
         ).join("\n");
 
         const prompt = workspaceChatPrompt(
-
             workspace,
-
             formattedProjects,
-
             formattedTasks,
-
             formattedActivities,
-
             question
-
         );
 
         const answer = await askAI(prompt);
 
         return res.status(200).json({
-
             success: true,
-
             answer
-
         });
 
     } catch (error) {
-
-        console.error(error);
+        console.error("==========================================");
+        console.error("AI CHAT ERROR");
+        console.error("==========================================");
+        console.error("Message:", error.message);
+        console.error("Data:", error.response?.data);
+        console.error("Stack:", error.stack);
+        console.error("Request Body:", req.body);
+        console.error("User ID:", req.user?._id);
+        console.error("Workspace ID:", req.body?.workspaceId);
+        console.error("==========================================");
 
         return res.status(500).json({
-
             success: false,
-
-            message: "AI Chat Failed"
-
+            message: "AI Chat Failed",
+            error: error.response?.data?.error?.message || error.message || "Unknown error occurred"
         });
-
     }
-
 };

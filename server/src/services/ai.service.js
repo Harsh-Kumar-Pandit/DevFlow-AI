@@ -31,11 +31,14 @@ export const askAI = async (prompt) => {
         return response.data.choices[0].message.content;
 
     } catch (error) {
-
         console.error("OpenRouter Error:", error.response?.data || error.message);
-
-        throw new Error("Failed to generate AI response");
-
+        
+        // Extract the actual error message from the OpenRouter API response if available
+        const actualError = error.response?.data?.error?.message || 
+                            error.response?.data?.message || 
+                            error.message || 
+                            "Failed to generate AI response";
+                            
+        throw new Error(actualError);
     }
-
 };

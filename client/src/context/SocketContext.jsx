@@ -1,51 +1,64 @@
-import {
-    createContext,
-    useContext,
-    useEffect,
-    useState
-} from "react";
+import { createContext, useContext, useEffect, useRef, useState } from 'react';
+import { io } from 'socket.io-client';
+import { useAuth } from './AuthContext';
 
-import {
-    connectSocket,
-    disconnectSocket
-} from "../services/socket";
+const SocketContext = createContext(null);
 
-const SocketContext = createContext();
+export function SocketProvider({ children }) {
+  const { user } = useAuth();
+  const socketRef = useRef(null);
+  const [onlineUsers, setOnlineUsers] = useState([]);
+  const [connected, setConnected] = useState(false);
 
-export const SocketProvider = ({ children }) => {
+  useEffect(() => {
+    if (!user) return;
 
-    const [socket, setSocket] = useState(null);
+    const socket = io('http://localhost:5000', {
+      withCredentials: true,
+    });
+    socketRef.current = socket;
 
-    useEffect(() => {
+    socket.on('connect', () => setConnected(true));
+    socket.on('disconnect', () => setConnected(false));
+    socket.on('online-users', (users) => setOnlineUsers(users));
 
-        const newSocket = connectSocket();
+    return () => {
+      socket.disconnect();
+      socketRef.current = null;
+      setConnected(false);
+    };
+  }, [user]);
 
-        setSocket(newSocket);
+  const joinWorkspace = (workspaceId) => {
+    socketRef.current?.emit('join-workspace', workspaceId);
+  };
 
-        return () => {
+  const leaveWorkspace = (workspaceId) => {
+    socketRef.current?.emit('leave-workspace', workspaceId);
+  };
 
-            disconnectSocket();
+  const joinTask = (taskId) => {
+    socketRef.current?.emit('join-task', taskId);
+  };
 
-        };
+  const leaveTask = (taskId) => {
+    socketRef.current?.emit('leave-task', taskId);
+  };
 
-    }, []);
+  const on = (event, handler) => {
+    socketRef.current?.on(event, handler);
+    return () => socketRef.current?.off(event, handler);
+  };
 
-    return (
+  return (
+    <SocketContext.Provider
+      value={{ socket: socketRef.current, connected, onlineUsers, joinWorkspace, leaveWorkspace, joinTask, leaveTask, on }}
+    >
+      {children}
+    </SocketContext.Provider>
+  );
+}
 
-        <SocketContext.Provider
-            value={socket}
-        >
-
-            {children}
-
-        </SocketContext.Provider>
-
-    );
-
-};
-
-export const useSocket = () => {
-
-    return useContext(SocketContext);
-
-};
+export function useSocket() {
+  return useContext(SocketContext);
+}
