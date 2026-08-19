@@ -1,6 +1,8 @@
 import User from "../models/User.js";
 import bcrypt from "bcryptjs";
 import generateToken from "../utils/generateToken.js";
+import WorkspaceInvitation from "../models/WorkspaceInvitation.js";
+import Workspace from "../models/Workspace.js";
 
 export const registerUser = async (req, res) => {
     try {
@@ -170,6 +172,68 @@ export const logoutUser = async (req, res) => {
         return res.status(200).json({
             success: true,
             message: "Logged out successfully"
+        });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({
+            success: false,
+            message: "Internal Server Error"
+        });
+    }
+};
+
+export const searchUsers = async (req, res) => {
+    try {
+        const { q, workspaceId } = req.query;
+        if (!q) {
+            return res.status(200).json({ success: true, users: [] });
+        }
+
+        const users = await User.find({
+            $and: [
+                { _id: { $ne: req.user._id } },
+                {
+                    $or: [
+                        { username: { $regex: q, $options: "i" } },
+                        { email: { $regex: q, $options: "i" } }
+                    ]
+                }
+            ]
+        })
+        .select("fullName username email avatar")
+        .limit(8);
+
+        let workspace = null;
+        let pendingInvites = [];
+
+        if (workspaceId) {
+            workspace = await Workspace.findById(workspaceId);
+            pendingInvites = await WorkspaceInvitation.find({
+                workspace: workspaceId,
+                status: "Pending"
+            });
+        }
+
+        const result = users.map(user => {
+            const isMember = workspace ? workspace.members.includes(user._id) : false;
+            const hasPendingInvite = pendingInvites.some(
+                invite => invite.receiver.toString() === user._id.toString()
+            );
+
+            return {
+                id: user._id,
+                fullName: user.fullName,
+                username: user.username,
+                email: user.email,
+                avatar: user.avatar || null,
+                isMember,
+                hasPendingInvite
+            };
+        });
+
+        return res.status(200).json({
+            success: true,
+            users: result
         });
     } catch (error) {
         console.error(error);

@@ -13,6 +13,8 @@ import dashboardRoutes from "./routes/dashboard.routes.js";
 import searchRoutes from "./routes/search.routes.js";
 import calendarRoutes from "./routes/calendar.routes.js";
 import aiRoutes from "./routes/ai.routes.js";
+import userRoutes from "./routes/user.routes.js";
+import invitationRoutes from "./routes/invitation.routes.js";
 
 const app = express();
 
@@ -49,6 +51,8 @@ app.use(
     calendarRoutes
 );
 app.use("/api/ai", aiRoutes);
+app.use("/api/users", userRoutes);
+app.use("/api/invitations", invitationRoutes);
 
 app.get("/", (req, res) => {
     res.status(200).json({

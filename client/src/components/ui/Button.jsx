@@ -2,12 +2,12 @@ import { motion } from 'framer-motion';
 import { cn } from '../../utils/cn';
 
 const variants = {
-  primary: 'bg-indigo-500 hover:bg-indigo-400 text-white shadow-lg shadow-indigo-500/20',
-  secondary: 'bg-zinc-800 hover:bg-zinc-700 text-zinc-100 border border-zinc-700 hover:border-zinc-600',
-  ghost: 'text-zinc-400 hover:text-white hover:bg-zinc-800',
+  primary: 'bg-[#7C6CF2] hover:bg-[#8B7CF6] text-white font-semibold shadow-[0_1px_1px_rgba(255,255,255,0.25)_inset,0_2px_6px_rgba(0,0,0,0.4),0_0_0_1px_rgba(124,108,242,0.8)]',
+  secondary: 'bg-[#0A0A0A] hover:bg-[#111111] text-[#ECECEC] font-medium border border-white/[0.08] shadow-[0_1px_1px_rgba(255,255,255,0.08)_inset,0_2px_8px_rgba(0,0,0,0.5)]',
+  ghost: 'text-zinc-400 hover:text-white hover:bg-white/5',
   danger: 'bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20',
   success: 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20',
-  gradient: 'bg-gradient-to-r from-indigo-500 to-violet-500 text-white hover:brightness-110 shadow-lg shadow-indigo-500/25',
+  gradient: 'bg-[#ECECEC] hover:bg-white text-[#0A0A0A] font-semibold border border-white/10 shadow-[0_1px_2px_rgba(255,255,255,0.9)_inset,0_4px_12px_rgba(0,0,0,0.3),0_0_0_1px_rgba(255,255,255,0.2)]',
 };
 
 const sizes = {
@@ -33,13 +33,13 @@ export function Button({
   ...props
 }) {
   return (
-    <motion.button
+    <button
       type={type}
-      whileTap={{ scale: 0.97 }}
       onClick={onClick}
       disabled={disabled || loading}
       className={cn(
-        'inline-flex items-center justify-center gap-2 font-medium transition-all duration-150 cursor-pointer select-none',
+        'inline-flex items-center justify-center gap-2 font-medium cursor-pointer select-none',
+        'transition-all duration-[250ms] ease-out hover:-translate-y-0.5 hover:scale-[1.02] active:scale-[0.98]',
         'disabled:opacity-50 disabled:cursor-not-allowed',
         variants[variant],
         sizes[size],
@@ -50,6 +50,6 @@ export function Button({
       {loading ? (
         <span className="h-4 w-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
       ) : children}
-    </motion.button>
+    </button>
   );
 }

@@ -11,6 +11,7 @@ import {
     rejectJoinRequest,
     removeMember
 } from "../controllers/workspace.controller.js";
+import { inviteMember } from "../controllers/invitation.controller.js";
 
 const router = express.Router();
 
@@ -18,6 +19,12 @@ router.post(
     "/create",
     protectRoute,
     createWorkspace
+);
+
+router.post(
+    "/:workspaceId/invite",
+    protectRoute,
+    inviteMember
 );
 router.get(
     "/my-workspaces",
@@ -35,13 +42,13 @@ router.get(
     getJoinRequests
 );
 
-router.patch(
+router.post(
     "/request/:requestId/accept",
     protectRoute,
     acceptJoinRequest
 );
 
-router.patch(
+router.post(
     "/request/:requestId/reject",
     protectRoute,
     rejectJoinRequest

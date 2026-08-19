@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import { Zap, Sparkles, Building, ArrowRight, ArrowLeft, Key, CheckCircle, ShieldAlert } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Input, Textarea } from '../ui/Input';
@@ -14,6 +15,7 @@ const SUGGESTIONS = {
 };
 
 export function OnboardingWizard({ onComplete }) {
+  const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [mode, setMode] = useState(''); // 'create' | 'join'
   
@@ -180,6 +182,17 @@ export function OnboardingWizard({ onComplete }) {
                   <p className="text-[11px] text-zinc-500 mt-2 leading-relaxed">
                     Paste an invitation key to connect with an active development workspace.
                   </p>
+                </button>
+              </div>
+
+              <div className="flex justify-center pt-4 border-t border-zinc-850">
+                <button
+                  type="button"
+                  onClick={() => navigate('/')}
+                  className="flex items-center gap-1.5 text-xs font-semibold text-red-500 hover:text-red-400 transition-colors"
+                >
+                  <ArrowLeft size={13} />
+                  Back to Home Page
                 </button>
               </div>
             </motion.div>

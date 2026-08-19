@@ -19,12 +19,20 @@ const TABS = [
 ];
 
 const SHORTCUTS = [
-  { keys: ['⌘', 'K'],  description: 'Open global search' },
-  { keys: ['⌘', '/'],  description: 'Show keyboard shortcuts' },
-  { keys: ['G', 'D'],  description: 'Go to dashboard' },
-  { keys: ['G', 'W'],  description: 'Go to workspace' },
-  { keys: ['N', 'T'],  description: 'New task' },
-  { keys: ['Esc'],     description: 'Close panel / drawer' },
+  { keys: ['Ctrl', 'K'],  description: 'Open global search' },
+  { keys: ['Ctrl', '/'],  description: 'Show keyboard shortcuts' },
+  { keys: ['G', 'D'],     description: 'Go to dashboard' },
+  { keys: ['G', 'W'],     description: 'Go to workspace' },
+  { keys: ['G', 'P'],     description: 'Go to projects' },
+  { keys: ['G', 'K'],     description: 'Go to kanban board' },
+  { keys: ['G', 'C'],     description: 'Go to calendar' },
+  { keys: ['G', 'A'],     description: 'Toggle AI Copilot' },
+  { keys: ['N', 'T'],     description: 'Create new task' },
+  { keys: ['N', 'P'],     description: 'Create new project' },
+  { keys: ['N', 'M'],     description: 'Invite member' },
+  { keys: ['G', 'N'],     description: 'Go to notifications' },
+  { keys: ['G', 'S'],     description: 'Go to settings' },
+  { keys: ['Esc'],        description: 'Close active modal / panel' },
 ];
 
 /* ── Shared section content ────────────────────────────────────────────── */
@@ -119,7 +127,25 @@ function SectionContent({ activeTab, user, currentWorkspace, logout }) {
       {/* ── Shortcuts ───────────────────────────────────────────────── */}
       {activeTab === 'shortcuts' && (
         <div className="p-5 sm:p-6">
-          <h2 className="text-base font-semibold text-white mb-4">Keyboard Shortcuts</h2>
+          <div className="flex items-center justify-between mb-4 border-b border-zinc-800/40 pb-3.5">
+            <h2 className="text-base font-semibold text-white">Keyboard Shortcuts</h2>
+            <Button
+              variant="secondary"
+              size="xs"
+              onClick={() => {
+                const event = new KeyboardEvent('keydown', {
+                  key: '/',
+                  ctrlKey: true,
+                  metaKey: true,
+                  bubbles: true
+                });
+                window.dispatchEvent(event);
+              }}
+              className="text-xs bg-zinc-850 hover:bg-zinc-800 border border-zinc-700 text-zinc-350"
+            >
+              Interactive Mode
+            </Button>
+          </div>
           <div className="space-y-1">
             {SHORTCUTS.map((s, i) => (
               <div key={i} className="flex items-center justify-between py-3.5 border-b border-zinc-800/70 last:border-0 min-h-[52px]">

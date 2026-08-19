@@ -21,7 +21,8 @@ const notificationSchema = new mongoose.Schema(
                 "STATUS_CHANGED",
                 "COMMENT",
                 "JOIN_ACCEPTED",
-                "PROJECT_CREATED"
+                "PROJECT_CREATED",
+                "WORKSPACE_INVITATION"
             ],
             required: true
         },
@@ -51,6 +52,11 @@ const notificationSchema = new mongoose.Schema(
         workspace: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "Workspace",
+            default: null
+        },
+        invitation: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "WorkspaceInvitation",
             default: null
         }
     },

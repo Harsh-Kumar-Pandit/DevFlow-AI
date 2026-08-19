@@ -216,102 +216,105 @@ export function KanbanPage() {
     <div className="flex flex-col h-full overflow-hidden">
 
       {/* ── Header ───────────────────────────────────────────────────────── */}
-      <div className="px-6 py-4 border-b border-zinc-800/50 flex items-center gap-4 flex-shrink-0 bg-zinc-950/30">
+      <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-zinc-800/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 flex-shrink-0 bg-zinc-950/30">
         {/* Breadcrumb */}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1.5 text-xs text-zinc-600 mb-1">
+        <div className="min-w-0">
+          <div className="flex items-center gap-1.5 text-xs text-zinc-550 mb-0.5 sm:mb-1">
             <LayoutDashboard size={11} />
             <span>Kanban Board</span>
           </div>
-          <h1 className="text-lg font-bold text-white truncate">
+          <h1 className="text-base sm:text-lg font-bold text-white truncate">
             {boardLoading ? 'Loading…' : (project?.name || 'Select a Project')}
           </h1>
         </div>
 
-        {/* ── Project Selector ──────────────────────────────────────────── */}
-        <div className="relative" ref={projectDropRef}>
-          <button
-            onClick={() => setProjectDropOpen((v) => !v)}
-            disabled={projectsLoading}
-            className={cn(
-              'flex items-center gap-2 h-9 px-3.5 rounded-xl border text-xs font-semibold transition-all',
-              'bg-zinc-900 border-zinc-700/60 text-zinc-300 hover:border-indigo-500/50 hover:text-white',
-              projectDropOpen && 'border-indigo-500/60 text-white bg-zinc-900'
-            )}
-          >
-            <FolderKanban size={13} className="text-indigo-400 flex-shrink-0" />
-            <span className="max-w-[140px] truncate">
-              {projectsLoading ? 'Loading projects…'
-                : projects.find((p) => p._id === selectedProjectId)?.name || 'Select project'}
+        {/* Actions Row */}
+        <div className="flex items-center justify-between sm:justify-end gap-3 flex-wrap sm:flex-nowrap w-full sm:w-auto">
+          {/* ── Project Selector ──────────────────────────────────────────── */}
+          <div className="relative" ref={projectDropRef}>
+            <button
+              onClick={() => setProjectDropOpen((v) => !v)}
+              disabled={projectsLoading}
+              className={cn(
+                'flex items-center gap-2 h-9 px-3 sm:px-3.5 rounded-xl border text-xs font-semibold transition-all',
+                'bg-zinc-900 border-zinc-700/60 text-zinc-300 hover:border-indigo-500/50 hover:text-white',
+                projectDropOpen && 'border-indigo-500/60 text-white bg-zinc-900'
+              )}
+            >
+              <FolderKanban size={13} className="text-indigo-400 flex-shrink-0" />
+              <span className="max-w-[100px] xs:max-w-[140px] truncate">
+                {projectsLoading ? 'Loading projects…'
+                  : projects.find((p) => p._id === selectedProjectId)?.name || 'Select project'}
+              </span>
+              <ChevronDown
+                size={13}
+                className={cn('transition-transform flex-shrink-0', projectDropOpen && 'rotate-180')}
+              />
+            </button>
+
+            <AnimatePresence>
+              {projectDropOpen && (
+                <motion.div
+                  initial={{ opacity: 0, y: -8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -8 }}
+                  transition={{ duration: 0.15 }}
+                  className="absolute right-0 top-full mt-2 w-64 bg-zinc-950 border border-zinc-800 rounded-2xl shadow-2xl shadow-black/40 overflow-hidden z-50"
+                >
+                  <div className="p-2">
+                    <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest px-2 py-1.5">
+                      Workspace Projects
+                    </p>
+                    {projects.length === 0 ? (
+                      <div className="flex flex-col items-center py-6 gap-2">
+                        <AlertCircle size={18} className="text-zinc-600" />
+                        <p className="text-xs text-zinc-500">No projects found</p>
+                      </div>
+                    ) : (
+                      projects.map((proj) => (
+                        <button
+                          key={proj._id}
+                          onClick={() => handleProjectSelect(proj)}
+                          className={cn(
+                            'w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-left text-xs font-semibold transition-all',
+                            proj._id === selectedProjectId
+                              ? 'bg-indigo-500/10 text-indigo-300 border border-indigo-500/20'
+                              : 'text-zinc-400 hover:bg-zinc-900 hover:text-white'
+                          )}
+                        >
+                          <div className="h-6 w-6 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center flex-shrink-0">
+                            <FolderKanban size={11} className="text-indigo-400" />
+                          </div>
+                          <span className="truncate">{proj.name}</span>
+                          {proj._id === selectedProjectId && (
+                            <span className="ml-auto text-[9px] bg-indigo-500/20 text-indigo-400 px-1.5 py-0.5 rounded-md font-bold">
+                              Active
+                            </span>
+                          )}
+                        </button>
+                      ))
+                    )}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* Task count + Add Task */}
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <span className="text-xs font-bold bg-zinc-900 border border-zinc-800 text-zinc-400 px-2.5 py-1 rounded-lg">
+              {totalTasks} {totalTasks === 1 ? 'task' : 'tasks'}
             </span>
-            <ChevronDown
-              size={13}
-              className={cn('transition-transform flex-shrink-0', projectDropOpen && 'rotate-180')}
-            />
-          </button>
-
-          <AnimatePresence>
-            {projectDropOpen && (
-              <motion.div
-                initial={{ opacity: 0, y: -8 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -8 }}
-                transition={{ duration: 0.15 }}
-                className="absolute right-0 top-full mt-2 w-64 bg-zinc-950 border border-zinc-800 rounded-2xl shadow-2xl shadow-black/40 overflow-hidden z-50"
-              >
-                <div className="p-2">
-                  <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest px-2 py-1.5">
-                    Workspace Projects
-                  </p>
-                  {projects.length === 0 ? (
-                    <div className="flex flex-col items-center py-6 gap-2">
-                      <AlertCircle size={18} className="text-zinc-600" />
-                      <p className="text-xs text-zinc-500">No projects found</p>
-                    </div>
-                  ) : (
-                    projects.map((proj) => (
-                      <button
-                        key={proj._id}
-                        onClick={() => handleProjectSelect(proj)}
-                        className={cn(
-                          'w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-left text-xs font-semibold transition-all',
-                          proj._id === selectedProjectId
-                            ? 'bg-indigo-500/10 text-indigo-300 border border-indigo-500/20'
-                            : 'text-zinc-400 hover:bg-zinc-900 hover:text-white'
-                        )}
-                      >
-                        <div className="h-6 w-6 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center flex-shrink-0">
-                          <FolderKanban size={11} className="text-indigo-400" />
-                        </div>
-                        <span className="truncate">{proj.name}</span>
-                        {proj._id === selectedProjectId && (
-                          <span className="ml-auto text-[9px] bg-indigo-500/20 text-indigo-400 px-1.5 py-0.5 rounded-md font-bold">
-                            Active
-                          </span>
-                        )}
-                      </button>
-                    ))
-                  )}
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-
-        {/* Task count + Add Task */}
-        <div className="flex items-center gap-2 flex-shrink-0">
-          <span className="text-xs font-bold bg-zinc-900 border border-zinc-800 text-zinc-400 px-2.5 py-1 rounded-lg">
-            {totalTasks} {totalTasks === 1 ? 'task' : 'tasks'}
-          </span>
-          <Button
-            size="sm"
-            variant="primary"
-            disabled={!selectedProjectId}
-            onClick={() => setCreateModal({ open: true, status: 'Todo' })}
-          >
-            <Plus size={13} />
-            Add Task
-          </Button>
+            <Button
+              size="sm"
+              variant="primary"
+              disabled={!selectedProjectId}
+              onClick={() => setCreateModal({ open: true, status: 'Todo' })}
+            >
+              <Plus size={13} />
+              Add Task
+            </Button>
+          </div>
         </div>
       </div>
 

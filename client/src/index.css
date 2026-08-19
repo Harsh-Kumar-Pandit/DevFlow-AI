@@ -2,21 +2,22 @@
 
 @theme {
   --color-background: #09090B;
-  --color-surface: #18181B;
-  --color-surface2: #27272A;
-  --color-border: #3F3F46;
-  --color-primary: #6366F1;
-  --color-primary-hover: #818CF8;
-  --color-accent: #8B5CF6;
-  --color-accent-hover: #A78BFA;
-  --color-success: #10B981;
+  --color-surface: #0A0A0A;
+  --color-surface2: rgba(10, 10, 10, 0.72);
+  --color-border: rgba(255, 255, 255, 0.06);
+  --color-primary: #7C6CF2;
+  --color-primary-hover: #8B7CF6;
+  --color-accent: #7C6CF2;
+  --color-accent-hover: #8B7CF6;
+  --color-success: #22C55E;
   --color-warning: #F59E0B;
   --color-danger: #EF4444;
-  --color-text: #FAFAFA;
+  --color-text: #FFFFFF;
   --color-muted: #A1A1AA;
   --color-faint: #71717A;
 
-  --font-sans: 'Inter', system-ui, sans-serif;
+  --font-sans: 'Geist', 'Inter', system-ui, sans-serif;
+  --font-display: 'Inter Tight', 'Geist', system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
 
   --radius-sm: 8px;
@@ -38,8 +39,8 @@ html {
 
 body {
   background-color: #09090B;
-  color: #FAFAFA;
-  font-family: 'Inter', system-ui, sans-serif;
+  color: #FFFFFF;
+  font-family: 'Geist', 'Inter', system-ui, sans-serif;
   margin: 0;
   padding: 0;
 }
@@ -149,6 +150,123 @@ body {
 
 /* Kanban column drag over */
 .drag-over {
-  background: rgba(99, 102, 241, 0.05);
-  border-color: rgba(99, 102, 241, 0.3);
+  background: rgba(124, 108, 246, 0.05);
+  border-color: rgba(124, 108, 246, 0.3);
+}
+
+/* ── PREMIUM VISUAL ENGINE CLASSES ── */
+
+h1, h2, h3, h4, h5, h6 {
+  letter-spacing: -0.01em;
+  text-shadow: none;
+}
+
+/* Layered premium background containers */
+.landing-bg-container {
+  background-color: #09090B;
+  position: relative;
+  overflow: hidden;
+}
+
+/* extremely soft top-left spotlight */
+.landing-white-spotlight {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 10% 10%, rgba(255, 255, 255, 0.03) 0%, transparent 50%);
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* faint top-right balancing light */
+.landing-secondary-spotlight {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 90% 15%, rgba(255, 255, 255, 0.015) 0%, transparent 40%);
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* subtle vignette around edges */
+.landing-vignette {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 4;
+  box-shadow: inset 0 0 200px rgba(5, 5, 5, 0.9);
+}
+
+/* almost invisible blurred vertical light streaks */
+.landing-light-streaks {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  background: 
+    linear-gradient(90deg, transparent 20%, rgba(255, 255, 255, 0.005) 30%, transparent 40%, rgba(255, 255, 255, 0.008) 60%, transparent 70%);
+  filter: blur(120px);
+}
+
+/* 1–2% animated grain texture */
+.landing-grain-texture {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 99;
+  opacity: 0.015;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+  animation: grain-anim 8s steps(10) infinite;
+  mix-blend-mode: overlay;
+}
+
+@keyframes grain-anim {
+  0%, 100% { transform: translate(0, 0); }
+  10% { transform: translate(-5%, -5%); }
+  20% { transform: translate(-10%, 5%); }
+  30% { transform: translate(5%, -7%); }
+  40% { transform: translate(-3%, 15%); }
+  50% { transform: translate(-8%, 9%); }
+  60% { transform: translate(10%, 0%); }
+  70% { transform: translate(0%, 10%); }
+  80% { transform: translate(2%, 18%); }
+  90% { transform: translate(-6%, 6%); }
+}
+
+/* Dust particles container and animation */
+.landing-dust-container {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 3;
+  overflow: hidden;
+}
+
+.landing-dust-particle {
+  position: absolute;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 50%;
+  pointer-events: none;
+  animation: float-particle var(--duration, 24s) linear infinite;
+  animation-delay: var(--delay, 0s);
+  width: var(--size, 2px);
+  height: var(--size, 2px);
+  left: var(--x, 50%);
+  top: var(--y, 100%);
+  box-shadow: 0 0 4px rgba(255, 255, 255, 0.1);
+}
+
+@keyframes float-particle {
+  0% {
+    transform: translateY(0) translateX(0) scale(0.8);
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.8;
+  }
+  90% {
+    opacity: 0.8;
+  }
+  100% {
+    transform: translateY(-80vh) translateX(var(--drift, 30px)) scale(1.1);
+    opacity: 0;
+  }
 }

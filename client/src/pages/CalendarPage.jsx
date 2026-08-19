@@ -248,13 +248,16 @@ export function CalendarPage() {
 
       {/* ── Calendar grid ──────────────────────────────────────────────── */}
       {(selectedProjectId || projectsLoading) && (
-        <div className="flex gap-5">
+        <div className="flex flex-col lg:flex-row gap-5">
 
           {/* Calendar */}
           <div className="flex-1 bg-zinc-900/50 border border-zinc-800/80 rounded-2xl overflow-hidden">
 
-            {/* Day headers */}
-            <div className="grid grid-cols-7 border-b border-zinc-800/60">
+            {/* Day headers & Grid wrapped for horizontal scroll on mobile */}
+            <div className="overflow-x-auto">
+              <div className="min-w-[640px] lg:min-w-0">
+                {/* Day headers */}
+                <div className="grid grid-cols-7 border-b border-zinc-800/60">
               {DAYS.map((d) => (
                 <div
                   key={d}
@@ -349,19 +352,21 @@ export function CalendarPage() {
                 })}
               </div>
             )}
+              </div>
+            </div>
           </div>
 
           {/* ── Day panel ───────────────────────────────────────────────── */}
           <AnimatePresence>
             {selectedDay && (
               <motion.div
-                initial={{ opacity: 0, x: 16, width: 0 }}
-                animate={{ opacity: 1, x: 0, width: 280 }}
-                exit={{ opacity: 0, x: 16, width: 0 }}
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 16 }}
                 transition={{ duration: 0.2 }}
-                className="flex-shrink-0 overflow-hidden"
+                className="flex-shrink-0 w-full lg:w-[280px] overflow-hidden"
               >
-                <div className="w-[280px] bg-zinc-900/60 border border-zinc-800/80 rounded-2xl p-4 space-y-3 h-full max-h-[600px] overflow-y-auto scrollbar-none">
+                <div className="w-full bg-zinc-900/60 border border-zinc-800/80 rounded-2xl p-4 space-y-3 h-full max-h-[600px] overflow-y-auto scrollbar-none">
                   {/* Header */}
                   <div className="flex items-center justify-between">
                     <div>

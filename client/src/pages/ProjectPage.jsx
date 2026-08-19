@@ -29,7 +29,8 @@ import api from '../services/api';
 import { ErrorBoundary } from '../components/common/ErrorBoundary';
 import { cn } from '../utils/cn';
 
-const TABS = ['Overview', 'Tasks', 'Kanban', 'Calendar', 'Files', 'Activity', 'AI Summary'];
+const TABS = ['Overview', 'Tasks',
+   'Kanban', 'Calendar', 'Files', 'Activity', 'AI Summary'];
 const COLUMNS = [
   { id: 'Todo', title: 'To Do', color: 'border-t-zinc-500' },
   { id: 'In Progress', title: 'In Progress', color: 'border-t-amber-500' },
@@ -566,7 +567,7 @@ function ProjectPageContent({ defaultTab }) {
                   <h3 className="text-xs font-bold text-zinc-400 uppercase tracking-widest">Recent activities</h3>
                   <div className="space-y-3">
                     {activities.slice(0, 3).map((act, i) => (
-                      <div key={i} className="flex gap-2.5 items-start text-[11px] leading-relaxed">
+                      <div key={act._id || i} className="flex gap-2.5 items-start text-[11px] leading-relaxed">
                         <Avatar user={act.user} size="xs" className="mt-0.5" />
                         <div>
                           <p className="text-zinc-300"><span className="font-bold text-zinc-200">{act.user?.fullName}</span> {act.description}</p>
@@ -604,7 +605,7 @@ function ProjectPageContent({ defaultTab }) {
                   />
                 </div>
                 
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <div className="relative">
                     <select
                       value={statusFilter}
@@ -846,67 +847,72 @@ function ProjectPageContent({ defaultTab }) {
                 </div>
               </div>
 
-              {/* Day headers */}
-              <div className="grid grid-cols-7 border-b border-zinc-855 text-center text-[10px] font-bold text-zinc-650 uppercase py-2 bg-zinc-950/10 tracking-widest">
-                {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
-                  <div key={d}>{d}</div>
-                ))}
-              </div>
+              {/* Day headers & Grid wrapped for horizontal scroll on mobile */}
+              <div className="overflow-x-auto">
+                <div className="min-w-[640px] md:min-w-0">
+                  {/* Day headers */}
+                  <div className="grid grid-cols-7 border-b border-zinc-855 text-center text-[10px] font-bold text-zinc-650 uppercase py-2 bg-zinc-950/10 tracking-widest">
+                    {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
+                      <div key={d}>{d}</div>
+                    ))}
+                  </div>
 
-              {/* Grid */}
-              <div className="grid grid-cols-7 bg-zinc-950/10">
-                {getCalendarDays().map((cell, i) => {
-                  const dayTasks = getTasksForDay(cell.date);
-                  const isToday = cell.isCurrentMonth &&
-                                  new Date().getDate() === cell.day &&
-                                  new Date().getMonth() === calendarDate.getMonth() &&
-                                  new Date().getFullYear() === calendarDate.getFullYear();
+                  {/* Grid */}
+                  <div className="grid grid-cols-7 bg-zinc-950/10">
+                    {getCalendarDays().map((cell, i) => {
+                      const dayTasks = getTasksForDay(cell.date);
+                      const isToday = cell.isCurrentMonth &&
+                                      new Date().getDate() === cell.day &&
+                                      new Date().getMonth() === calendarDate.getMonth() &&
+                                      new Date().getFullYear() === calendarDate.getFullYear();
 
-                  return (
-                    <div
-                      key={i}
-                      className={cn(
-                        "min-h-[100px] border-b border-r border-zinc-855/65 p-2 flex flex-col justify-between transition-colors",
-                        (i + 1) % 7 === 0 && "border-r-0",
-                        cell.isCurrentMonth ? "hover:bg-zinc-900/20" : "opacity-25 bg-zinc-950/50 pointer-events-none",
-                        isToday && "bg-indigo-500/[0.02]"
-                      )}
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className={cn(
-                          "text-[10px] font-bold h-5 w-5 flex items-center justify-center rounded-full",
-                          isToday ? "bg-indigo-500 text-white font-black" : "text-zinc-550"
-                        )}>
-                          {cell.day}
-                        </span>
-                        {dayTasks.length > 0 && (
-                          <span className="text-[8px] font-bold text-zinc-600 bg-zinc-850 px-1 rounded">
-                            {dayTasks.length} task{(dayTasks.length) !== 1 ? 's' : ''}
-                          </span>
-                        )}
-                      </div>
-                      
-                      <div className="space-y-1 mt-2 flex-1 overflow-y-auto scrollbar-none max-h-[70px]">
-                        {dayTasks.map(t => {
-                          const prio = getPriorityConfig(t.priority);
-                          return (
-                            <button
-                              key={t._id}
-                              onClick={() => { setSelectedTask(t); setTaskDrawerOpen(true); }}
-                              className={cn(
-                                "w-full text-left text-[9px] font-bold p-1 rounded border truncate block transition-all hover:translate-x-0.5",
-                                prio.bg, prio.color, prio.border
-                              )}
-                              title={t.title}
-                            >
-                              {t.title}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  );
-                })}
+                      return (
+                        <div
+                          key={i}
+                          className={cn(
+                            "min-h-[100px] border-b border-r border-zinc-855/65 p-2 flex flex-col justify-between transition-colors",
+                            (i + 1) % 7 === 0 && "border-r-0",
+                            cell.isCurrentMonth ? "hover:bg-zinc-900/20" : "opacity-25 bg-zinc-950/50 pointer-events-none",
+                            isToday && "bg-indigo-500/[0.02]"
+                          )}
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className={cn(
+                              "text-[10px] font-bold h-5 w-5 flex items-center justify-center rounded-full",
+                              isToday ? "bg-indigo-500 text-white font-black" : "text-zinc-550"
+                            )}>
+                              {cell.day}
+                            </span>
+                            {dayTasks.length > 0 && (
+                              <span className="text-[8px] font-bold text-zinc-600 bg-zinc-850 px-1 rounded">
+                                {dayTasks.length} task{(dayTasks.length) !== 1 ? 's' : ''}
+                              </span>
+                            )}
+                          </div>
+                          
+                          <div className="space-y-1 mt-2 flex-1 overflow-y-auto scrollbar-none max-h-[70px]">
+                            {dayTasks.map(t => {
+                              const prio = getPriorityConfig(t.priority);
+                              return (
+                                <button
+                                  key={t._id}
+                                  onClick={() => { setSelectedTask(t); setTaskDrawerOpen(true); }}
+                                  className={cn(
+                                    "w-full text-left text-[9px] font-bold p-1 rounded border truncate block transition-all hover:translate-x-0.5",
+                                    prio.bg, prio.color, prio.border
+                                  )}
+                                  title={t.title}
+                                >
+                                  {t.title}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
             </motion.div>
           )}

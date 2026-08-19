@@ -36,7 +36,7 @@ export function KanbanBoard({
           <div
             key={column.id}
             className={cn(
-              "w-[340px] flex-shrink-0 flex flex-col bg-[#13131A] border border-[#232330] rounded-[24px] p-4 h-full min-h-0 shadow-[0_8px_30px_rgb(0,0,0,0.3)] transition-all duration-200",
+              "w-[285px] flex-shrink-0 flex flex-col bg-[#13131A] border border-[#232330] rounded-[24px] p-4 h-full min-h-0 shadow-[0_8px_30px_rgb(0,0,0,0.3)] transition-all duration-200",
               isOver && "border-indigo-500/20 bg-[#151520]"
             )}
             onDragOver={(e) => handleDragOver(e, column.id)}

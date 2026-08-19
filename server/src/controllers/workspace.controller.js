@@ -3,6 +3,8 @@ import crypto from "crypto";
 import JoinRequest from "../models/JoinRequest.js";
 import User from "../models/User.js";
 import { createNotification } from "../services/notification.service.js";
+import WorkspaceMember from "../models/WorkspaceMember.js";
+import { getIO } from "../socket/socket.js";
 
 export const createWorkspace = async (req, res) => {
 
@@ -70,8 +72,9 @@ export const getMyWorkspaces = async (req, res) => {
         const workspaces = await Workspace.find({
             members: req.user._id
         })
-            .select("name description inviteCode owner createdAt")
-            .populate("owner", "fullName email");
+            .select("name description inviteCode owner members createdAt")
+            .populate("owner", "fullName email")
+            .populate("members", "fullName email username");
 
         if (workspaces.length === 0) {
             return res.status(200).json({
@@ -219,9 +222,7 @@ export const getJoinRequests = async (req, res) => {
 };
 
 export const acceptJoinRequest = async (req, res) => {
-
     try {
-
         const { requestId } = req.params;
 
         const joinRequest = await JoinRequest.findById(requestId)
@@ -229,104 +230,181 @@ export const acceptJoinRequest = async (req, res) => {
             .populate("user");
 
         if (!joinRequest) {
+            console.error(`Accept join request failed: Request ${requestId} not found.`);
             return res.status(404).json({
                 success: false,
                 message: "Join request not found"
             });
         }
 
-        if (
-            joinRequest.workspace.owner.toString() !==
-            req.user._id.toString()
-        ) {
-            return res.status(403).json({
+        const workspace = joinRequest.workspace;
+        const requestingUser = joinRequest.user;
+
+        if (!workspace) {
+            console.error(`Accept join request failed: Workspace associated with request ${requestId} not found.`);
+            return res.status(404).json({
                 success: false,
-                message: "Access denied"
+                message: "Workspace not found"
             });
         }
 
-        const alreadyMember = joinRequest.workspace.members.some(
-            member =>
-                member.toString() ===
-                joinRequest.user._id.toString()
+        // Verify current user is workspace owner
+        if (workspace.owner.toString() !== req.user._id.toString()) {
+            console.error(`Accept join request unauthorized: User ${req.user._id} is not owner of workspace ${workspace._id}.`);
+            return res.status(403).json({
+                success: false,
+                message: "Access denied: Unauthorized"
+            });
+        }
+
+        // Prevent duplicate memberships on Workspace model
+        const alreadyMember = workspace.members.some(
+            member => member.toString() === requestingUser._id.toString()
         );
 
         if (alreadyMember) {
+            console.warn(`User ${requestingUser._id} is already a member of workspace ${workspace._id}.`);
             return res.status(400).json({
                 success: false,
-                message: "User is already a member"
+                message: "Already a member"
             });
         }
 
-        // Add user to workspace
-        joinRequest.workspace.members.push(joinRequest.user._id);
-        await joinRequest.workspace.save();
+        // Add the user to the WorkspaceMember collection/table
+        const existingMember = await WorkspaceMember.findOne({
+            workspace: workspace._id,
+            user: requestingUser._id
+        });
 
-        // Add workspace to user
-        joinRequest.user.workspaces.push(joinRequest.workspace._id);
-        await joinRequest.user.save();
+        if (existingMember) {
+            console.warn(`WorkspaceMember entry already exists for workspace ${workspace._id} and user ${requestingUser._id}.`);
+        } else {
+            await WorkspaceMember.create({
+                workspace: workspace._id,
+                user: requestingUser._id,
+                role: "Member"
+            });
+            console.log(`Created WorkspaceMember entry for user ${requestingUser._id} in workspace ${workspace._id}.`);
+        }
 
+        // Add user to workspace members array (keep it in sync)
+        workspace.members.push(requestingUser._id);
+        await workspace.save();
+
+        // Add workspace to user workspaces
+        if (!requestingUser.workspaces.includes(workspace._id)) {
+            requestingUser.workspaces.push(workspace._id);
+            await requestingUser.save();
+        }
+
+        // Create notification
         await createNotification({
-
-            recipient: joinRequest.user._id,
-
+            recipient: requestingUser._id,
             sender: req.user._id,
-
             type: "JOIN_REQUEST_ACCEPTED",
-
-            message: `Your request to join "${joinRequest.workspace.name}" has been accepted.`,
-
-            workspace: joinRequest.workspace._id
-
+            message: `Your request to join "${workspace.name}" has been accepted.`,
+            workspace: workspace._id
         });
 
         // Delete join request
         await JoinRequest.findByIdAndDelete(requestId);
+        console.log(`Deleted join request ${requestId}.`);
+
+        // Populate updated workspace
+        const updatedWorkspace = await Workspace.findById(workspace._id)
+            .populate("owner", "fullName username email")
+            .populate("members", "fullName username email");
+
+        // Broadcast MEMBER_JOINED via Socket.IO
+        try {
+            const io = getIO();
+            const payload = {
+                workspaceId: workspace._id.toString(),
+                userId: requestingUser._id.toString(),
+                member: {
+                    _id: requestingUser._id,
+                    fullName: requestingUser.fullName,
+                    email: requestingUser.email,
+                    username: requestingUser.username
+                },
+                workspace: updatedWorkspace
+            };
+            io.to(`workspace:${workspace._id}`).emit("MEMBER_JOINED", payload);
+            io.to(`user:${requestingUser._id}`).emit("MEMBER_JOINED", payload);
+            console.log(`Socket broadcast MEMBER_JOINED for workspace ${workspace._id} and user ${requestingUser._id}`);
+        } catch (socketErr) {
+            console.error("Socket broadcast for MEMBER_JOINED failed:", socketErr);
+        }
 
         return res.status(200).json({
             success: true,
-            message: "Member added successfully"
+            message: "Member added successfully",
+            workspace: updatedWorkspace
         });
 
     } catch (error) {
-
-        console.error(error);
-
+        console.error("Error in acceptJoinRequest:", error);
         return res.status(500).json({
             success: false,
             message: "Internal Server Error"
         });
-
     }
-
 };
 
 export const rejectJoinRequest = async (req, res) => {
     try {
-
         const { requestId } = req.params;
 
         const joinRequest = await JoinRequest.findById(requestId)
-            .populate("workspace");
+            .populate("workspace")
+            .populate("user");
 
         if (!joinRequest) {
+            console.error(`Reject join request failed: Request ${requestId} not found.`);
             return res.status(404).json({
                 success: false,
                 message: "Join request not found"
             });
         }
 
-        if (
-            joinRequest.workspace.owner.toString() !==
-            req.user._id.toString()
-        ) {
+        const workspace = joinRequest.workspace;
+        const requestingUser = joinRequest.user;
+
+        if (!workspace) {
+            console.error(`Reject join request failed: Workspace associated with request ${requestId} not found.`);
+            return res.status(404).json({
+                success: false,
+                message: "Workspace not found"
+            });
+        }
+
+        // Verify current user is workspace owner
+        if (workspace.owner.toString() !== req.user._id.toString()) {
+            console.error(`Reject join request unauthorized: User ${req.user._id} is not owner of workspace ${workspace._id}.`);
             return res.status(403).json({
                 success: false,
-                message: "Access denied"
+                message: "Access denied: Unauthorized"
             });
         }
 
         await JoinRequest.findByIdAndDelete(requestId);
+        console.log(`Rejected and deleted join request ${requestId} for user ${requestingUser?._id}`);
+
+        // Broadcast MEMBER_REJECTED via Socket.IO
+        try {
+            const io = getIO();
+            const payload = {
+                workspaceId: workspace._id.toString(),
+                userId: requestingUser?._id?.toString()
+            };
+            io.to(`workspace:${workspace._id}`).emit("MEMBER_REJECTED", payload);
+            if (requestingUser) {
+                io.to(`user:${requestingUser._id}`).emit("MEMBER_REJECTED", payload);
+            }
+            console.log(`Socket broadcast MEMBER_REJECTED for workspace ${workspace._id} and user ${requestingUser?._id}`);
+        } catch (socketErr) {
+            console.error("Socket broadcast for MEMBER_REJECTED failed:", socketErr);
+        }
 
         return res.status(200).json({
             success: true,
@@ -334,14 +412,11 @@ export const rejectJoinRequest = async (req, res) => {
         });
 
     } catch (error) {
-
-        console.error(error);
-
+        console.error("Error in rejectJoinRequest:", error);
         return res.status(500).json({
             success: false,
             message: "Internal Server Error"
         });
-
     }
 };
 

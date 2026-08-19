@@ -7,42 +7,27 @@ import { useSocket } from '../../context/SocketContext';
 import { useNotifications } from '../../context/NotificationContext';
 import { useWorkspace } from '../../context/WorkspaceContext';
 import { Avatar } from '../ui/Avatar';
-import { GlobalSearch } from './GlobalSearch';
 import { NotificationPanel } from './NotificationPanel';
 
-export function Navbar({ onAIOpen }) {
+export function Navbar({ onAIOpen, onSearchOpen }) {
   const { user } = useAuth();
   const { connected, onlineUsers } = useSocket() || {};
   const { unreadCount } = useNotifications() || {};
   const { currentWorkspace } = useWorkspace();
-  const [searchOpen, setSearchOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   const navigate = useNavigate();
-
-  // Ctrl+K shortcut
-  const handleKeyDown = useCallback((e) => {
-    if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-      e.preventDefault();
-      setSearchOpen(true);
-    }
-  }, []);
-
-  useState(() => {
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  });
 
   return (
     <>
       <header className="h-14 bg-zinc-950/80 backdrop-blur-xl border-b border-zinc-800/50 flex items-center px-4 gap-4 flex-shrink-0 sticky top-0 z-30">
         {/* Search trigger */}
         <button
-          onClick={() => setSearchOpen(true)}
+          onClick={onSearchOpen}
           className="flex items-center gap-2 h-8 px-3 bg-zinc-900 border border-zinc-800 rounded-xl text-sm text-zinc-500 hover:border-zinc-700 hover:text-zinc-400 transition-all flex-1 max-w-xs"
         >
           <Search size={13} />
           <span>Search everything...</span>
-          <kbd className="ml-auto text-[10px] bg-zinc-800 px-1.5 py-0.5 rounded-md font-mono text-zinc-600">⌘K</kbd>
+          <kbd className="ml-auto text-[10px] bg-zinc-800 px-1.5 py-0.5 rounded-md font-mono text-zinc-650">Ctrl K</kbd>
         </button>
 
         <div className="flex-1" />
@@ -90,8 +75,6 @@ export function Navbar({ onAIOpen }) {
           </button>
         </div>
       </header>
-
-      <GlobalSearch open={searchOpen} onClose={() => setSearchOpen(false)} />
     </>
   );
 }

@@ -25,7 +25,7 @@ import toast from 'react-hot-toast';
 export function WorkspacePage() {
   const { workspaceId } = useParams();
   const { user } = useAuth();
-  const { joinWorkspace, leaveWorkspace, onlineUsers } = useSocket() || {};
+  const { joinWorkspace, leaveWorkspace, onlineUsers, on } = useSocket() || {};
   const { fetchWorkspaces, workspaces } = useWorkspace();
   const navigate = useNavigate();
 
@@ -34,6 +34,7 @@ export function WorkspacePage() {
   const [requests, setRequests] = useState([]);
   const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [processingRequests, setProcessingRequests] = useState({});
   const [copied, setCopied] = useState(false);
   const [createProjectOpen, setCreateProjectOpen] = useState(false);
   const [projectForm, setProjectForm] = useState({ name: '', description: '' });
@@ -42,9 +43,16 @@ export function WorkspacePage() {
   // Leave & delete workspace modal confirmations
   const [confirmLeaveOpen, setConfirmLeaveOpen] = useState(false);
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const [submittingAction, setSubmittingAction] = useState(false);
 
   const isOwner = workspace?.owner?._id === user?.id || workspace?.owner === user?.id;
+
+  useEffect(() => {
+    if (!confirmDeleteOpen) {
+      setDeleteConfirmText('');
+    }
+  }, [confirmDeleteOpen]);
 
   useEffect(() => {
     if (!workspaceId) return;
@@ -52,6 +60,33 @@ export function WorkspacePage() {
     loadData();
     return () => leaveWorkspace?.(workspaceId);
   }, [workspaceId]);
+
+  useEffect(() => {
+    if (!on) return;
+    const cleanupJoined = on('MEMBER_JOINED', (payload) => {
+      if (payload.workspaceId === workspaceId) {
+        if (payload.workspace) {
+          setWorkspace(payload.workspace);
+        } else {
+          loadData();
+        }
+      }
+      if (payload.userId === (user?.id || user?._id)) {
+        fetchWorkspaces();
+      }
+    });
+
+    const cleanupRejected = on('MEMBER_REJECTED', (payload) => {
+      if (payload.userId === (user?.id || user?._id)) {
+        fetchWorkspaces();
+      }
+    });
+
+    return () => {
+      cleanupJoined?.();
+      cleanupRejected?.();
+    };
+  }, [workspaceId, on, user, fetchWorkspaces]);
 
   const loadData = async () => {
     setLoading(true);
@@ -107,23 +142,45 @@ export function WorkspacePage() {
   };
 
   const handleAcceptRequest = async (id) => {
+    setProcessingRequests((prev) => ({ ...prev, [id]: 'accept' }));
     try {
-      await workspaceService.acceptJoinRequest(id);
+      const response = await workspaceService.acceptJoinRequest(id);
       setRequests((prev) => prev.filter((r) => r._id !== id));
-      toast.success('Member added!');
-      loadData();
+      if (response.data?.success && response.data?.workspace) {
+        setWorkspace(response.data.workspace);
+      } else {
+        await loadData();
+      }
+      toast.success('Member added successfully.');
     } catch (err) {
-      toast.error('Failed to accept join request');
+      console.error(err);
+      const errMsg = err.response?.data?.message || 'Failed to accept join request';
+      toast.error(errMsg);
+    } finally {
+      setProcessingRequests((prev) => {
+        const copy = { ...prev };
+        delete copy[id];
+        return copy;
+      });
     }
   };
 
   const handleRejectRequest = async (id) => {
+    setProcessingRequests((prev) => ({ ...prev, [id]: 'reject' }));
     try {
       await workspaceService.rejectJoinRequest(id);
       setRequests((prev) => prev.filter((r) => r._id !== id));
-      toast.success('Request rejected');
+      toast.success('Join request rejected.');
     } catch (err) {
-      toast.error('Failed to reject join request');
+      console.error(err);
+      const errMsg = err.response?.data?.message || 'Failed to reject join request';
+      toast.error(errMsg);
+    } finally {
+      setProcessingRequests((prev) => {
+        const copy = { ...prev };
+        delete copy[id];
+        return copy;
+      });
     }
   };
 
@@ -196,8 +253,8 @@ export function WorkspacePage() {
     return (
       <div className="p-6 max-w-5xl mx-auto space-y-6">
         <Skeleton className="h-44 w-full rounded-2xl animate-pulse" />
-        <div className="grid grid-cols-3 gap-6">
-          <Skeleton className="h-64 col-span-2 rounded-2xl" />
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <Skeleton className="h-64 lg:col-span-2 rounded-2xl" />
           <Skeleton className="h-64 rounded-2xl" />
         </div>
       </div>
@@ -214,15 +271,15 @@ export function WorkspacePage() {
       >
         <div className="absolute top-0 right-0 w-80 h-80 bg-gradient-to-br from-indigo-500/10 to-violet-500/5 rounded-full blur-3xl pointer-events-none" />
         <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="flex items-center gap-5">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-5">
             <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-indigo-500 via-purple-500 to-violet-600 flex items-center justify-center text-3xl font-extrabold text-white flex-shrink-0 shadow-lg shadow-indigo-500/20">
               {workspace?.name?.[0]?.toUpperCase()}
             </div>
             <div>
               <h1 className="text-2xl font-extrabold text-white tracking-tight">{workspace?.name}</h1>
               <p className="text-sm text-zinc-400 mt-1 max-w-md">{workspace?.description || 'No description provided.'}</p>
-              <div className="flex items-center gap-2.5 mt-3">
-                <Badge variant="indigo" dot>{projects.length} project{projects.length !== 1 ? 's' : ''}</Badge>
+              <div className="flex flex-wrap items-center gap-2.5 mt-3">
+                <Badge variant="primary" dot>{projects.length} project{projects.length !== 1 ? 's' : ''}</Badge>
                 <Badge variant="default" dot>{members.length} member{members.length !== 1 ? 's' : ''}</Badge>
                 {isOwner && <Badge variant="warning"><Shield size={10} className="mr-1" /> Owner Account</Badge>}
               </div>
@@ -415,30 +472,50 @@ export function WorkspacePage() {
                 <span className="text-[10px] font-bold bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded-lg">{requests.length}</span>
               </div>
               <div className="space-y-3 max-h-[220px] overflow-y-auto scrollbar-none">
-                {requests.map((req) => (
-                  <div key={req._id} className="flex items-center justify-between gap-3 p-2 bg-zinc-950/40 border border-zinc-850 rounded-xl">
-                    <div className="min-w-0">
-                      <p className="text-xs font-bold text-zinc-200 truncate">{req.user?.fullName}</p>
-                      <p className="text-[9px] text-zinc-550 truncate">@{req.user?.username}</p>
+                {requests.map((req) => {
+                  const status = processingRequests[req._id];
+                  const isProcessing = !!status;
+                  return (
+                    <div key={req._id} className="flex items-center justify-between gap-3 p-2 bg-zinc-950/40 border border-zinc-850 rounded-xl">
+                      <div className="min-w-0">
+                        <p className="text-xs font-bold text-zinc-200 truncate">{req.user?.fullName}</p>
+                        <p className="text-[9px] text-zinc-550 truncate">@{req.user?.username}</p>
+                      </div>
+                      <div className="flex gap-1.5 flex-shrink-0">
+                        <button
+                          onClick={() => handleAcceptRequest(req._id)}
+                          disabled={isProcessing}
+                          className="h-7 w-7 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 flex items-center justify-center border border-emerald-500/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          title="Accept request"
+                        >
+                          {status === 'accept' ? (
+                            <svg className="animate-spin h-3.5 w-3.5 text-emerald-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                          ) : (
+                            <Check size={13} />
+                          )}
+                        </button>
+                        <button
+                          onClick={() => handleRejectRequest(req._id)}
+                          disabled={isProcessing}
+                          className="h-7 w-7 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 flex items-center justify-center border border-red-500/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          title="Decline request"
+                        >
+                          {status === 'reject' ? (
+                            <svg className="animate-spin h-3.5 w-3.5 text-red-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                          ) : (
+                            <UserMinus size={13} />
+                          )}
+                        </button>
+                      </div>
                     </div>
-                    <div className="flex gap-1.5 flex-shrink-0">
-                      <button
-                        onClick={() => handleAcceptRequest(req._id)}
-                        className="h-7 w-7 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 flex items-center justify-center border border-emerald-500/10 transition-colors"
-                        title="Accept request"
-                      >
-                        <Check size={13} />
-                      </button>
-                      <button
-                        onClick={() => handleRejectRequest(req._id)}
-                        className="h-7 w-7 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 flex items-center justify-center border border-red-500/10 transition-colors"
-                        title="Decline request"
-                      >
-                        <UserMinus size={13} />
-                      </button>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}
@@ -523,9 +600,25 @@ export function WorkspacePage() {
           <p className="text-sm text-zinc-300 leading-relaxed">
             Please confirm you want to delete <span className="font-bold text-white">"{workspace?.name}"</span>.
           </p>
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-zinc-400">
+              Type <span className="text-white select-all font-bold">"{workspace?.name}"</span> to confirm:
+            </label>
+            <Input
+              value={deleteConfirmText}
+              onChange={(e) => setDeleteConfirmText(e.target.value)}
+              placeholder="Enter workspace name"
+              required
+            />
+          </div>
           <div className="flex gap-3 justify-end mt-2">
             <Button type="button" variant="ghost" onClick={() => setConfirmDeleteOpen(false)}>Cancel</Button>
-            <Button variant="danger" onClick={handleDeleteWorkspace} loading={submittingAction}>
+            <Button
+              variant="danger"
+              onClick={handleDeleteWorkspace}
+              loading={submittingAction}
+              disabled={deleteConfirmText !== workspace?.name}
+            >
               Yes, Delete Workspace
             </Button>
           </div>

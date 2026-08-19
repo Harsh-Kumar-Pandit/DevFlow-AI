@@ -16,6 +16,7 @@ import { CalendarPage } from './pages/CalendarPage';
 import { NotificationsPage } from './pages/NotificationsPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { LandingPage } from './pages/LandingPage';
+import { DocsPage } from './pages/DocsPage';
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
@@ -76,6 +77,7 @@ function InnerApp() {
       </Route>
 
       {/* Fallback */}
+      <Route path="/docs" element={<DocsPage />} />
       <Route path="/" element={<LandingPage />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
