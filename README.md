@@ -174,5 +174,5 @@ Client runs on `http://localhost:5173`, API on `http://localhost:5000`.
 
 ## 👤 Author
 
-**Harsh Kumar Pandit** — B.Tech CSE, GGITS Jabalpur (RGPV)
+**Harsh Kumar Pandit**
 [GitHub](https://github.com/Harsh-Kumar-Pandit) · [Live Demo](https://dev-flow-ai-pied.vercel.app)
